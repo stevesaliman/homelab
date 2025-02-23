@@ -9,5 +9,6 @@ This document covers the changes from the original khuedoan repo.
 
 3. Replaced `Asia/Ho_Chi_Minh` with `America/Denver`
 
+4. Replaced `id_ed25519` with `id_rsa` and commented out the code in metal/Makefile that generates
+  keys.  We can use our existing keys.
 
-https://img.shields.io/website?label=document&logo=gitbook&logoColor=white&style=flat-square&url=https%3A%2F%2Fhomelab.stevesaliman.com
