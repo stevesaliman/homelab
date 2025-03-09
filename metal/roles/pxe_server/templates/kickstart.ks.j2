@@ -10,7 +10,8 @@ lang en_US.UTF-8
 
 # Partition clearing information
 clearpart --all --drives={{ hostvars[item]['disk'] }}
-# Partitioning
+# Partitioning.  Make the boot partition, and a root partition with 64G.  The rest of the disk
+# Will be partitioned later.
 ignoredisk --only-use={{ hostvars[item]['disk'] }}
 partition /boot/efi --fstype=vfat --size=512
 partition / --fstype=ext4 --size=65536

@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
-site_name: Khue's Homelab
-copyright: Copyright &copy; 2020 - 2024 Khue Doan
+site_name: Steve's Homelab
+copyright: Copyright &copy; 2020 - 2025 Khue Doan and Steve Saliman
 
 repo_url: https://github.com/stevesaliman/homelab
 
@@ -39,6 +39,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Installation:
+    - installation/overview.md
     - installation/sandbox.md
     - Production:
       - installation/production/prerequisites.md

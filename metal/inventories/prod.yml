@@ -1,15 +1,17 @@
 all:
   vars:
+    # virtual IP for the masters
     control_plane_endpoint: 192.168.1.100
+    # Addresses for exposed services that are a LoadBalancer Also virtual.
     load_balancer_ip_pool:
       - 192.168.1.224/27
 metal:
   children:
     masters:
       hosts:
-        metal0: {ansible_host: 192.168.1.110, mac: '00:23:24:d1:f5:69', disk: sda, network_interface: eno1}
-        metal1: {ansible_host: 192.168.1.111, mac: '00:23:24:d1:f3:f0', disk: sda, network_interface: eno1}
-        metal2: {ansible_host: 192.168.1.112, mac: '00:23:24:e7:04:60', disk: sda, network_interface: eno1}
-    workers:
-      hosts:
-        metal3: {ansible_host: 192.168.1.113, mac: '00:23:24:d1:f4:d6', disk: sda, network_interface: eno1}
+        kube-mgr-01: {ansible_host: 192.168.1.81, mac: 'e8:6a:64:70:fd:97', disk: sda, network_interface: enp0s31f6}
+        kube-mgr-02: {ansible_host: 192.168.1.82, mac: 'e8:6a:64:9c:4f:fd', disk: sda, network_interface: enp0s31f6}
+#        kube-mgr-03: {ansible_host: 192.168.1.83, mac: '8c:16:45:dc:be:9a', disk: nvme0n1, network_interface: enp0s31f6}
+#    workers:
+#      hosts:
+#        kube-wkr-01: {ansible_host: 192.168.1.84, mac: '8c:16:45:51:78:06', disk: sda, network_interface: enp0s31f6}
