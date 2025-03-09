@@ -1,7 +1,9 @@
 all:
   vars:
+    # What do you want to call your cluster?
+    cluster_name: homelab
     # virtual IP for the masters
-    control_plane_endpoint: 192.168.1.100
+    control_plane_endpoint: 192.168.1.80
     # Addresses for exposed services that are a LoadBalancer Also virtual.
     load_balancer_ip_pool:
       - 192.168.1.224/27

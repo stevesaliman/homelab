@@ -12,3 +12,8 @@ This document covers the changes from the original khuedoan repo.
 4. Replaced `id_ed25519` with `id_rsa` and commented out the code in metal/Makefile that generates
   keys.  We can use our existing keys.
 
+5. Added a cluster_name variable to the prod inventory, made a change to the k3s role to use it
+  when creating the local kubernetes config file.
+
+6. Made a prereq script to install prerequisites
+
