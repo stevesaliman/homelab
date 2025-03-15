@@ -8,6 +8,7 @@
         name: argocd
         state: present
 
+    # Check if this is the first run by getting info for the gitea pod.
     - name: Check if this is the first installation
       kubernetes.core.k8s_info:
         kind: Pod
@@ -17,6 +18,9 @@
           - status.phase=Running
       register: first_install
 
+    # If the gitea pod wasn't running (the phase array from above is empty), run the Helm chart to
+    # install Argo with "seed" values that deploy all the apps in the GitHub repo, that sit under
+    # system, platform, or apps.  Otherwise use the values file that monitors gitea for changes.
     - name: Render ArgoCD manifests from Helm chart
       kubernetes.core.helm_template:
         chart_ref: ./argocd
@@ -27,6 +31,11 @@
         values_files:
           - "argocd/{{ (first_install.resources | length == 0) | ternary('values-seed.yaml', 'values.yaml') }}"
       register: argocd_manifests
+
+    - name: show manifest
+      ansible.builtin.copy:
+        content: "{{ argocd_manifests.stdout }}"
+        dest: argocd_manifests.yml
 
     - name: Apply ArgoCD manifests
       kubernetes.core.k8s:

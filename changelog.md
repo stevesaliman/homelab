@@ -17,3 +17,6 @@ This document covers the changes from the original khuedoan repo.
 
 6. Made a prereq script to install prerequisites
 
+7. Modified the configure script to replace the branch/tag of the repo that Argo will use when it
+  deploys the apps.
+

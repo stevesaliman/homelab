@@ -38,3 +38,4 @@ It will prompt you to edit the inventory:
     ```
 
 At the end it will show what has changed. After examining the diff, commit and push the changes.
+Don't forget this step.  If you don't push, Argo CD will use the upstream repo instead of this one.

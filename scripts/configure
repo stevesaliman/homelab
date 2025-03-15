@@ -5,6 +5,10 @@
 
 """
 Basic configure script for new users
+
+It is mostly used to change the repo, domain, timezone, etc. from Kuhe Doan's values to our own.
+It is important to push changes after running this script so that Argo uses the right repo for
+deployment.
 """
 
 import fileinput
@@ -13,8 +17,11 @@ import sys
 
 from rich.prompt import Confirm, Prompt
 
+# These are the current values in the upstream repo, a.k.a. the values to be replaced.  Don't
+# change these until after you've run it, then change them again after each run.
 upstream_config = {
     "seed_repo": "https://github.com/stevesaliman/homelab",
+    "seed_repo_revision": "master",
     "domain": "saliman.net",
     "timezone": "America/Denver",
     "terraform_workspace": "saliman",
@@ -34,8 +41,8 @@ def find_and_replace(pattern: str, replacement: str, paths: list[str]) -> None:
         text=True
     ).stdout.splitlines()
 
-    for file_with_maches in files_with_matches:
-        with fileinput.FileInput(file_with_maches, inplace=True) as file:
+    for file_with_matches in files_with_matches:
+        with fileinput.FileInput(file_with_matches, inplace=True) as file:
             for line in file:
                 print(line.replace(pattern, replacement), end='')
 
@@ -45,9 +52,10 @@ def main() -> None:
         required_version='3.10.0'
     )
 
-    editor = Prompt.ask("Select text editor", default='nvim')
+    editor = Prompt.ask("Select text editor", default='vim')
     domain = Prompt.ask("Enter your domain", default=upstream_config['domain'])
     seed_repo = Prompt.ask("Enter seed repo", default=upstream_config['seed_repo'])
+    seed_repo_revision = Prompt.ask("Enter seed repo_revision", default=upstream_config['seed_repo_revision'])
     timezone = Prompt.ask("Enter time zone", default=upstream_config['timezone'])
     loadbalancer_ip_range = Prompt.ask("Enter IP range for load balancer", default=upstream_config['loadbalancer_ip_range'])
 
@@ -69,6 +77,18 @@ def main() -> None:
         paths=[
             "system",
             "platform"
+        ]
+    )
+
+    # This one's a little different.  We need to tell Argo to track the right revision of the
+    # homelab repo, but a simple string substitution is not enough, because words like "master" and
+    # "dev" are used all over the place.  So this replacement targets just the argocd value files,
+    # taking advantage of the special "&revision" tokens that are in them.
+    find_and_replace(
+        pattern="&revision " + upstream_config['seed_repo_revision'],
+        replacement="&revision " + seed_repo_revision,
+        paths=[
+            "system/argocd"
         ]
     )
 

@@ -10,6 +10,8 @@ default: metal system external smoke-test post-install clean
 configure:
 	./scripts/configure
 	git status
+	echo "IMPORTANT!!!!!"
+	echo "Don't forget to update the upstream_values in scripts/configure, and push your changes!"
 
 metal:
 	make -C metal
