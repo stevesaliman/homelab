@@ -7,11 +7,20 @@ KUBE_CONFIG_PATH = $(KUBECONFIG)
 
 default: metal system external smoke-test post-install clean
 
+# Configure the system before we do anything else
 configure:
 	./scripts/configure
 	git status
 	echo "IMPORTANT!!!!!"
 	echo "Don't forget to update the upstream_values in scripts/configure, and push your changes!"
+
+# Convenience target to wake the cluster.
+wake:
+	make -C metal wake
+
+# Convenience target to shutdown the cluster.
+shutdown:
+	make -C metal shutdown
 
 metal:
 	make -C metal
