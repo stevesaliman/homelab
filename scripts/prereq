@@ -12,5 +12,5 @@ ansible-galaxy collection install community.docker
 echo "Adding firewall rules for PXE"
 sudo ufw allow from 192.168.1.0/24 to any port 67 comment 'DHCP'
 sudo ufw allow from 192.168.1.0/24 to any port 68 comment 'DHCP'
-sudo ufw allow from 192.168.1.0/24 to any port 69 comment 'TFTP'
+sudo ufw allow from 192.168.1.0/24 to any app "Nginx Full"
 

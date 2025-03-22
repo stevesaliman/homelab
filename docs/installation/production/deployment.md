@@ -6,7 +6,7 @@ Open the development shell if you haven't already:
 nix develop
 ```
 
-Build the lab:
+Start an ssh agent, then build the lab:
 
 ```sh
 make
