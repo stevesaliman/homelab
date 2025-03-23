@@ -1,4 +1,10 @@
 #!/bin/sh
 
-export KUBECONFIG=./metal/kubeconfig.yaml
-kubectl get ingress --all-namespaces --no-headers --output custom-columns="ADDRESS:.status.loadBalancer.ingress[0].ip,HOST:.spec.rules[0].host"
+# If we already have a kube config, assume the homelab is in it.
+if [ -f ~/.kube/config ]; then
+    kubectl config use-context homelab
+else
+    export KUBECONFIG=./metal/kubeconfig.yaml
+fi
+
+kubectl get ingress --all-namespaces --no-headers --output custom-columns="ADDRESS:.status.loadBalancer.ingress[0].ip,HOST:.spec.rules[0].host" | sort

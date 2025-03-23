@@ -33,7 +33,7 @@ Any modern `x86_64` computer(s) should work, you can use old PCs, laptops or ser
 
 !!! info
 
-    This is the requirements for _each_ node
+    This is the requirements for _each_ node.  There must be at least 3 nodes for Ceph to work correctly.
 
 | Component  | Minimum                                                                                                      | Recommended                                                                                  |
 | :--        | :--                                                                                                          | :--                                                                                          |

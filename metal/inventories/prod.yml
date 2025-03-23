@@ -13,7 +13,7 @@ metal:
       hosts:
         kube-mgr-01: {ansible_host: 192.168.1.81, mac: 'e8:6a:64:70:fd:97', disk: sda, network_interface: enp0s31f6}
         kube-mgr-02: {ansible_host: 192.168.1.82, mac: 'e8:6a:64:9c:4f:fd', disk: sda, network_interface: enp0s31f6}
-#        kube-mgr-03: {ansible_host: 192.168.1.83, mac: '8c:16:45:dc:be:9a', disk: nvme0n1, network_interface: enp0s31f6}
+        kube-mgr-03: {ansible_host: 192.168.1.83, mac: '8c:16:45:dc:be:9a', disk: nvme0n1, network_interface: enp0s31f6}
 #    workers:
 #      hosts:
 #        kube-wkr-01: {ansible_host: 192.168.1.84, mac: '8c:16:45:51:78:06', disk: sda, network_interface: enp0s31f6}

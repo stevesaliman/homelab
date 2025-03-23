@@ -1,6 +1,12 @@
 #!/bin/sh
 
-export KUBECONFIG=./metal/kubeconfig.yaml
+# If we already have a kube config, assume the homelab is in it.
+if [ -f ~/.kube/config ]; then
+    kubectl config use-context homelab
+else
+    export KUBECONFIG=./metal/kubeconfig.yaml
+fi
+
 
 kubectl get applicationsets --namespace argocd
 kubectl get applications --namespace argocd
