@@ -1,3 +1,5 @@
+# After the initial run, we apply this file, which enables ingress, metrics, certificate management,
+# etc.
 argo-cd:
   global:
     domain: argocd.saliman.net

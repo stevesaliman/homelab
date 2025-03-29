@@ -1,9 +1,14 @@
+# Minimal values for the first run, when we don't have anything installed to the cluster.  It sets
+# up Argo to monitor the directories with our applications, which will get automatically installed
+# the first time Argo comes up.
 argo-cd:
   server:
     metrics: &metrics
       enabled: false
       serviceMonitor:
         enabled: false
+  dex:
+    enabled: false
   controller:
     metrics: *metrics
   repoServer:
