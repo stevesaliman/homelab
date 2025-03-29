@@ -20,3 +20,4 @@ This document covers the changes from the original khuedoan repo.
 7. Modified the configure script to replace the branch/tag of the repo that Argo will use when it
   deploys the apps.
 
+8. Modified scrits to only export a kube config if I don't already have one.
