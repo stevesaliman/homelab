@@ -8,19 +8,36 @@
         name: argocd
         state: present
 
-    # Check if this is the first run by getting info for the gitea pod.
+    # There are two ArgoCD manifests in the project.  a "seed" manifest to do the initial
+    # deployment, and the final one, which uses some of the applications installed by the seed
+    # manifest.  The final version relies on system monitoring and the ingress service to work.
+    # Check to see which one to use base on whether the ingress (the last of the prerequisites to
+    # be installed) is running.
     - name: Check if this is the first installation
       kubernetes.core.k8s_info:
         kind: Pod
         label_selectors:
-          - app.kubernetes.io/instance=gitea
+          - app.kubernetes.io/instance=ingres-nginx
         field_selectors:
           - status.phase=Running
-      register: first_install
+      register: ingress_running
 
-    # If the gitea pod wasn't running (the phase array from above is empty), run the Helm chart to
+    # The original task, which used gitea to switch manifests.  Khuedoan used this because his
+    # final manifest switched from github to internal hosting on gitea at this point.
+    # Check if this is the first run by getting info for the gitea pod.
+#    - name: Check if this is the first installation
+#      kubernetes.core.k8s_info:
+#        kind: Pod
+#        label_selectors:
+#          - app.kubernetes.io/instance=gitea
+#        field_selectors:
+#          - status.phase=Running
+#      register: gitea_running
+
+    # If the ingress pod isn't running (the phase array from above is empty), run the Helm chart to
     # install Argo with "seed" values that deploy all the apps in the GitHub repo, that sit under
-    # system, platform, or apps.  Otherwise use the values file that monitors gitea for changes.
+    # system, platform, or apps.  Otherwise, use the values file that include monitoring and use the
+    # ingress.
     - name: Render ArgoCD manifests from Helm chart
       kubernetes.core.helm_template:
         chart_ref: ./argocd
@@ -29,7 +46,7 @@
         release_namespace: argocd
         dependency_update: true
         values_files:
-          - "argocd/{{ (first_install.resources | length == 0) | ternary('values-seed.yaml', 'values.yaml') }}"
+          - "argocd/{{ (ingress_running.resources | length == 0) | ternary('values-seed.yaml', 'values.yaml') }}"
       register: argocd_manifests
 
     - name: show manifest
