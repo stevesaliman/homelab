@@ -17,10 +17,14 @@
       kubernetes.core.k8s_info:
         kind: Pod
         label_selectors:
-          - app.kubernetes.io/instance=ingres-nginx
+          - app.kubernetes.io/instance=ingress-nginx
         field_selectors:
           - status.phase=Running
       register: ingress_running
+
+    - name: Do we have in ingres?
+      debug:
+        msg: "Ingress running? {{ ingress_running.resources | length != 0 }}"
 
     # The original task, which used gitea to switch manifests.  Khuedoan used this because his
     # final manifest switched from github to internal hosting on gitea at this point.
