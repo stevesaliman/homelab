@@ -21,3 +21,6 @@ This document covers the changes from the original khuedoan repo.
   deploys the apps.
 
 8. Modified scrits to only export a kube config if I don't already have one.
+
+9. Changed the "first run" detection in bootstrap.yml to use ingress-nginx instead of gitea because
+  We probably don't need it.
