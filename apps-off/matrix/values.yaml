@@ -3,7 +3,7 @@ elementweb:
     enabled: true
     className: nginx
     annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
+      cert-manager.io/cluster-issuer: self-signed
       external-dns.alpha.kubernetes.io/target: "homelab-tunnel.saliman.net"
       external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     hosts:
@@ -28,7 +28,7 @@ dendrite:
     enabled: true
     className: nginx
     annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
+      cert-manager.io/cluster-issuer: self-signed
     hostName: matrix.saliman.net
     tls:
       - hosts:
