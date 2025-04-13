@@ -18,7 +18,7 @@ app-template:
       className: nginx
       annotations:
         nginx.ingress.kubernetes.io/proxy-body-size: 50m
-        cert-manager.io/cluster-issuer: self-signed
+        cert-manager.io/cluster-issuer: saliman-ca
       hosts:
         - host: &host speedtest.saliman.net
           paths:

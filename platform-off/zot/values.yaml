@@ -2,7 +2,7 @@ zot:
   ingress:
     enabled: true
     annotations:
-      cert-manager.io/cluster-issuer: self-signed
+      cert-manager.io/cluster-issuer: saliman-ca
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
     className: nginx
     hosts:

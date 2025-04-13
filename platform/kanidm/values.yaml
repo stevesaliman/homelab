@@ -43,7 +43,7 @@ app-template:
       enabled: true
       className: nginx
       annotations:
-        cert-manager.io/cluster-issuer: self-signed
+        cert-manager.io/cluster-issuer: saliman-ca
         nginx.ingress.kubernetes.io/backend-protocol: HTTPS
       hosts:
         - host: &host auth.saliman.net

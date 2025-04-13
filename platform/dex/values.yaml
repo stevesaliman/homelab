@@ -41,7 +41,7 @@ dex:
     enabled: true
     className: nginx
     annotations:
-      cert-manager.io/cluster-issuer: self-signed
+      cert-manager.io/cluster-issuer: saliman-ca
     hosts:
       - host: &host dex.saliman.net
         paths:

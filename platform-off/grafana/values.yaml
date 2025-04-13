@@ -3,7 +3,7 @@ grafana:
     enabled: true
     ingressClassName: nginx
     annotations:
-      cert-manager.io/cluster-issuer: self-signed
+      cert-manager.io/cluster-issuer: saliman-ca
     hosts:
       - &host grafana.saliman.net
     tls:
