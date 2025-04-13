@@ -1,4 +1,13 @@
 dex:
+  # Mount the root certificate if we are our own CA
+  volumeMounts:
+    - name: ca-volume
+      mountPath: /etc/dex/ca
+      readOnly: true
+  volumes:
+    - name: ca-volume
+      secret:
+        secretName: dex-secrets
   config:
     issuer: https://dex.saliman.net
     storage:
@@ -16,6 +25,8 @@ dex:
           clientSecret: $KANIDM_CLIENT_SECRET
           redirectURI: https://dex.saliman.net/callback
           issuer: https://auth.saliman.net/oauth2/openid/dex
+          # If we are our own CA
+          rootCA: /etc/dex/ca/ca.crt
           # TODO https://github.com/dexidp/dex/pull/3188
           # enablePKCE: true
           scopes:
