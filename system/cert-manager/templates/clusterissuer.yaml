@@ -63,7 +63,7 @@ spec:
       data:
         ca.crt: "{{ .tls.crt }}"
   data:
-    - secretKey: tls_crt
+    - secretKey: tls.crt
       remoteRef:
         key: root-ca
         property: tls.crt
