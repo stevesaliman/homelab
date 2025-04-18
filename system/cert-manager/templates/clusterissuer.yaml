@@ -1,6 +1,32 @@
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
+  name: ssaliman-root-ca
+spec:
+  self-signed: {}
+---
+# create the root certificate
+apiVersion: certificates.k8s.io/v1
+kind: Certificate
+metadata:
+  name: root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  secretName: root-ca
+  duration: 87600h # 10 years
+  commonName: ssaliman-root-ca
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: ssaliman-root-ca
+    kind: ClusterIssuer
+---
+# Create the certificate issuer that uses the root certificate
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
   # name: letsencrypt-prod
   # name: self-signed
   name: saliman-ca
