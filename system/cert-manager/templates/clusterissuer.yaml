@@ -1,3 +1,4 @@
+# Define a cluster issuer that can issue self signed certs that can be used as a CA
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -53,7 +54,7 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: cluster-secrets
+    name: global-secrets
     kind: ClusterSecretStore
   target:
     name: root-ca
