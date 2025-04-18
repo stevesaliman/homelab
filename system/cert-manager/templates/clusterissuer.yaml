@@ -61,9 +61,9 @@ spec:
     template:
       type: Opaque
       data:
-        ca.crt: "{{ .tls.crt }}"
+        ca.crt: "{{ .tls_crt }}"
   data:
-    - secretKey: tls.crt
+    - secretKey: tls_crt
       remoteRef:
         key: root-ca
         property: tls.crt
