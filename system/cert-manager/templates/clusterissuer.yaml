@@ -6,7 +6,7 @@ spec:
   self-signed: {}
 ---
 # create the root certificate
-apiVersion: certificates.k8s.io/v1
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: root-ca
