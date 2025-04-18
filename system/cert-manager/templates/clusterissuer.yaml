@@ -3,7 +3,7 @@ kind: ClusterIssuer
 metadata:
   name: ssaliman-root-ca
 spec:
-  self-signed: {}
+  selfSigned: {}
 ---
 # create the root certificate
 apiVersion: cert-manager.io/v1
