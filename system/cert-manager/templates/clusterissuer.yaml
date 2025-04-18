@@ -43,3 +43,27 @@ spec:
   #        apiTokenSecretRef:
   #          name: cloudflare-api-token
   #          key: api-token
+---
+# Put it in the global-secrets namespace
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: root-ca
+  namespace: global-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: cluster-secrets
+    kind: ClusterSecretStore
+  target:
+    name: root-ca
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        ca.crt: "{{ .tls_crt }}"
+  data:
+    - secretKey: tls_crt
+      remoteRef:
+        key: root-ca
+        property: tls.crt
