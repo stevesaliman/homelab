@@ -1,0 +1,7 @@
+# Define an issuer that can issue self-signed certs that can be used as a CA for the root cert.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: saliman-root-ca
+spec:
+  selfSigned: {}
