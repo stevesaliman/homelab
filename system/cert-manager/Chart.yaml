@@ -2,6 +2,9 @@ apiVersion: v2
 name: cert-manager
 version: 0.0.0
 dependencies:
+  - name: reflector
+    version: 9.0.322
+    repository: https://emberstack.github.io/helm-charts
   - name: cert-manager
     version: v1.15.3
     repository: https://charts.jetstack.io

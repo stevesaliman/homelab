@@ -7,6 +7,10 @@ metadata:
 spec:
   isCA: true
   secretName: saliman-root-cert
+  secretTemplate:
+    annotation:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: ""
   duration: 87600h # 10 years
   commonName: saliman-root-cert
   privateKey:
