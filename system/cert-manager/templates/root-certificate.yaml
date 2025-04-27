@@ -10,7 +10,9 @@ spec:
   secretTemplate:
     annotations:
       reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-      reflector.v1.k8s.emberstack.com/reflection-namespace: "global-secrets"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "global-secrets"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "global-secrets"
   duration: 87600h # 10 years
   commonName: saliman-root-cert
   privateKey:
