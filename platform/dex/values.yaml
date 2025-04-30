@@ -7,7 +7,7 @@ dex:
   volumes:
     - name: ca-volume
       secret:
-        secretName: dex-secrets
+        secretName: saliman-root-cert
   config:
     issuer: https://dex.saliman.net
     storage:
@@ -47,7 +47,7 @@ dex:
         secretEnv: GITEA_CLIENT_SECRET
   envFrom:
     - secretRef:
-        name: dex-secrets
+        name: dex
   ingress:
     enabled: true
     className: nginx
