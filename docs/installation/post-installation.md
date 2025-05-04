@@ -4,8 +4,8 @@
 
 Save the following files to a safe location like a password manager (if you're using the sandbox, you can skip this step):
 
-- `~/.ssh/id_rsa`
-- `~/.ssh/id_rsa.pub`
+- `~/.ssh/id_ed25519`
+- `~/.ssh/is_ed25519.pub`
 - `./metal/kubeconfig.yaml`
 - `~/.terraform.d/credentials.tfrc.json`
 - `./external/terraform.tfvars`
