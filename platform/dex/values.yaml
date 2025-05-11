@@ -1,8 +1,9 @@
 dex:
-  # Mount the root certificate if we are our own CA
+  # Mount the root certificate if we are our own CA.  We only need the cert file, so use subPath.
   volumeMounts:
-    - name: ca-volume
-      mountPath: /etc/dex/ca
+    - mountPath: /etc/ssl/certs/saliman-ca.crt
+      name: ca-volume
+      subPath: saliman-ca.crt
       readOnly: true
   volumes:
     - name: ca-volume
@@ -25,8 +26,8 @@ dex:
           clientSecret: $KANIDM_CLIENT_SECRET
           redirectURI: https://dex.saliman.net/callback
           issuer: https://auth.saliman.net/oauth2/openid/dex
-          # If we are our own CA
-          rootCA: /etc/dex/ca/ca.crt
+          # If we are our own CA, we need to specify the rootCA
+          rootCA: /etc/ssl/certs/saliman-ca.crt
           # TODO https://github.com/dexidp/dex/pull/3188
           # enablePKCE: true
           scopes:
