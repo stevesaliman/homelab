@@ -33,3 +33,12 @@ This document covers the changes from the original khuedoan repo.
   root certificate.  The root certificate is annotated with reflector annotations to sync it with
   the global-secrets.  Also changed the name of the certificate issuer in the apps that request
   certificates, so they request them from the right issuer.
+
+12. The main helm chart used in apps moved from `https://bjw-s.github.io/helm-charts` to
+  `https://bjw-s-labs.github.io/helm-charts`, so I had to update charts accordingly.
+
+13. Created `dex/templates/root-ca-secret.yaml` to copy the root cert's secret from the
+  global-secrets namespace into the dex namespace, and I had to modify `dex/values.yaml` to add a
+  volume mount that creates `/etc/ssl/certs/saliman-ca.crt`.  This directory name is important - it
+  doesn't work if it is elsewhere. I also had to modify the dex config to add a `rootCA` pointing
+  to our cert

@@ -9,6 +9,17 @@ pip install rich kubernetes mkdocs material mkdocs-material
 echo "Installing docker Ansible plugin"
 ansible-galaxy collection install community.docker
 
+echo "Installing Kanidm CLI"
+curl -s "https://kanidm.github.io/kanidm_ppa/kanidm_ppa.asc" \
+    | sudo tee /etc/apt/trusted.gpg.d/kanidm_ppa.asc >/dev/null
+
+curl -s "https://kanidm.github.io/kanidm_ppa/kanidm_ppa.list" \
+    | grep $( ( . /etc/os-release && echo $VERSION_CODENAME) ) | grep stable \
+    | sudo tee /etc/apt/sources.list.d/kanidm_ppa.list
+
+sudo apt update
+sudo apt install kanidm
+
 echo "Adding firewall rules for PXE"
 sudo ufw allow from 192.168.1.0/24 to any port 67 comment 'DHCP'
 sudo ufw allow from 192.168.1.0/24 to any port 68 comment 'DHCP'

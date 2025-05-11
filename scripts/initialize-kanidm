@@ -3,6 +3,9 @@
 """
 Quick and dirty script for things that I can't/don't have time to do properly yet
 TODO: retire this script
+
+This script initializes the users and groups in kanidm, which involves running commands on the pod,
+so it can't (I think) be run in a manifest.
 """
 
 import base64
@@ -23,15 +26,49 @@ from kubernetes.stream import stream
 # - Kubernetes service account
 config.load_config()
 
-gitea_host = client.NetworkingV1Api().read_namespaced_ingress('gitea', 'gitea').spec.rules[0].host
-gitea_user_secret = client.CoreV1Api().read_namespaced_secret('gitea-admin-secret', 'gitea')
-gitea_user = base64.b64decode(gitea_user_secret.data['username']).decode("utf-8")
-gitea_pass = base64.b64decode(gitea_user_secret.data['password']).decode("utf-8")
-gitea_url = f"http://{gitea_host}"
-
 kanidm_host = client.NetworkingV1Api().read_namespaced_ingress('kanidm', 'kanidm').spec.rules[0].host
 
+
+# This method gets the root Certificate Authority from the cert-manager.  We'll need this later if
+# we want to make https requests from our browsers.  It saves the cert to "root-ca.crt" for use
+# later.
+def get_root_ca_secret_ca(name: str, namespace: str) -> None:
+    # Fetch the secret
+    secret = client.CoreV1Api().read_namespaced_secret(name, namespace)
+    # Extract and decode the certificate (you can also get tls.key if needed)
+    tls_crt_b64 = secret.data.get("ca.crt")
+    if not tls_crt_b64:
+        raise ValueError("ca.crt not found in secret")
+
+    tls_crt = base64.b64decode(tls_crt_b64)
+
+    # Save to file
+    with open("root-ca.crt", "wb") as f:
+        f.write(tls_crt)
+
+    print("Certificate saved to root-ca.crt")
+
+# This method gets the Certificate Authority cert from the self-signed TLS cert Kanidm is using.  It
+# saves the cert to "kanidm-ca.crt" for use later.
+def get_kanidm_tls_secret_ca(name: str, namespace: str) -> None:
+    # Fetch the secret
+    secret = client.CoreV1Api().read_namespaced_secret(name, namespace)
+    # Extract and decode the certificate (you can also get tls.key if needed)
+    tls_crt_b64 = secret.data.get("ca.crt")
+    if not tls_crt_b64:
+        raise ValueError("ca.crt not found in secret")
+
+    tls_crt = base64.b64decode(tls_crt_b64)
+
+    # Save to file
+    with open("kanidm-ca.crt", "wb") as f:
+        f.write(tls_crt)
+
+    print("Certificate saved to kanidm-ca.crt")
+
+
 def apply_secret(name: str, namespace: str, data: dict) -> None:
+    print(f"Applying {data} to {name}")
     try:
         client.CoreV1Api().read_namespaced_secret(name, namespace)
         patch_body = client.V1Secret(
@@ -47,99 +84,8 @@ def apply_secret(name: str, namespace: str, data: dict) -> None:
         )
         client.CoreV1Api().create_namespaced_secret(namespace, new_secret)
 
-def setup_gitea_access_token(name: str, scopes: list[str]) -> None:
-    current_tokens = requests.get(
-        url=f"{gitea_url}/api/v1/users/{gitea_user}/tokens",
-        auth=(gitea_user,gitea_pass),
-    ).json()
-
-    if not any(token['name'] == name for token in current_tokens):
-        resp = requests.post(
-            url=f"{gitea_url}/api/v1/users/{gitea_user}/tokens",
-            auth=(gitea_user,gitea_pass),
-            headers={
-                'Content-Type': 'application/json'
-            },
-            data=json.dumps({
-                'name': name,
-                'scopes': scopes
-            })
-        )
-
-        if resp.status_code == 201:
-            apply_secret(
-                f"gitea.{name}",
-                "global-secrets",
-                {
-                    'token': base64.b64encode(resp.json()['sha1'].encode("utf-8")).decode("utf-8")
-                }
-            )
-        else:
-            print(f"Error creating access token {name} ({resp.status_code})")
-            print(resp.content)
-            sys.exit(1)
-
-def setup_gitea_oauth_app(name: str, redirect_uri: str) -> None:
-    # TODO use the new global application, while it's there in the UI, there's no API yet.
-    current_apps = requests.get(
-        url=f"{gitea_url}/api/v1/user/applications/oauth2",
-        auth=(gitea_user,gitea_pass),
-    ).json()
-
-    if not any(app['name'] == name for app in current_apps):
-        resp = requests.post(
-            url=f"{gitea_url}/api/v1/user/applications/oauth2",
-            auth=(gitea_user,gitea_pass),
-            headers={
-                'Content-Type': 'application/json'
-            },
-            data=json.dumps({
-                'name': name,
-                'redirect_uris': [redirect_uri],
-                'confidential_client': True
-            })
-        )
-
-        if resp.status_code == 201:
-            apply_secret(
-                f"gitea.{name}",
-                "global-secrets",
-                {
-                    'client_id': base64.b64encode(resp.json()['client_id'].encode("utf-8")).decode("utf-8"),
-                    'client_secret': base64.b64encode(resp.json()['client_secret'].encode("utf-8")).decode("utf-8"),
-                }
-            )
-        else:
-            print(f"Error creating OAuth application {name} ({resp.status_code})")
-            print(resp.content)
-            sys.exit(1)
-
-def setup_gitea_auth_with_dex():
-    gitea_pod = client.CoreV1Api().list_namespaced_pod(namespace='gitea', label_selector='app=gitea').items[0].metadata.name
-    client_secret = base64.b64decode(
-        client.CoreV1Api().read_namespaced_secret('dex.gitea', 'global-secrets').data['client_secret']
-    ).decode("utf-8")
-    discovery_url = f"https://{client.NetworkingV1Api().read_namespaced_ingress('dex', 'dex').spec.rules[0].host}/.well-known/openid-configuration"
-
-    # TODO currently there's no API to add new authentication sources in Gitea,
-    # so we have to workaround by running Gitea CLI in a Gitea pod.
-    stream(
-        client.CoreV1Api().connect_get_namespaced_pod_exec,
-        gitea_pod,
-        'gitea',
-        command=[
-            'gitea', 'admin', 'auth', 'add-oauth',
-            '--name', 'Dex',
-            '--provider', 'openidConnect',
-            '--key', 'gitea',
-            '--secret', client_secret,
-            '--auto-discover-url', discovery_url
-        ],
-        stderr=True, stdin=False,
-        stdout=False, tty=False
-    )
-
 def reset_kanidm_account_password(account: str) -> str:
+    print(f"Resetting {account}'s password")
     resp = stream(
         client.CoreV1Api().connect_get_namespaced_pod_exec,
         'kanidm-0',
@@ -155,50 +101,66 @@ def reset_kanidm_account_password(account: str) -> str:
 # https://github.com/kanidm/kanidm/pull/2301
 def kanidm_login(accounts: list[str]) -> None:
     for account in accounts:
+        print(f"Resetting and logging in as {account}")
         password = reset_kanidm_account_password(account)
+        print(f"  password: {password}")
 
         # There's no way to input password using the standard library, so we have to use pexpect
         # https://stackoverflow.com/questions/2387731/use-subprocess-to-send-a-password
-        cli_login = pexpect.spawn(f"kanidm login --url https://{kanidm_host} --name {account}")
+        print(f"  kanidm login --url https://{kanidm_host} --name {account} --ca kanidm-ca.crt")
+        cli_login = pexpect.spawn(f"kanidm login --url https://{kanidm_host} --name {account} --ca kanidm-ca.crt")
         cli_login.sendline(password)
         cli_login.read()
+        print(f"  Login successful for {account}")
 
 def setup_kanidm_group(name: str) -> None:
+    print(f"Creating the {name} group")
     subprocess.run(
-        ["kanidm", "group", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", name],
+        ["kanidm", "group", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name],
         capture_output=True,
     )
 
 def setup_kanidm_oauth_app(name: str, redirect_uri: str) -> None:
+    print(f"Setting up the {name} application")
     try:
+        print("  Setting up the system")
+        print(f"    kanidm system oauth2 create --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name} {name} {redirect_uri}")
         subprocess.run(
-            ["kanidm", "system", "oauth2", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", name, name, redirect_uri],
+            ["kanidm", "system", "oauth2", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name, name, redirect_uri],
             capture_output=True,
             check=True,
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print(f"  Oops!\n${e}")
         return
 
     # TODO https://github.com/dexidp/dex/pull/3188
+    print("  Step 2...")
+    print(f"    kanidm system oauth2 warning-insecure-client-disable-pkce --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name}")
     subprocess.run(
-        ["kanidm", "system", "oauth2", "warning-insecure-client-disable-pkce", "--url", f"https://{kanidm_host}", "--name", "idm_admin", name],
+        ["kanidm", "system", "oauth2", "warning-insecure-client-disable-pkce", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name],
         capture_output=True,
         check=True,
     )
 
+    print("  Step 3")
+    print(f"    kanidm system oauth2 create-scope-map --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name} editor openid profile email groups")
     subprocess.run(
         # TODO better group management
-        ["kanidm", "system", "oauth2", "create-scope-map", "--url", f"https://{kanidm_host}", "--name", "idm_admin", name, "editor", "openid", "profile", "email", "groups"],
+        ["kanidm", "system", "oauth2", "create-scope-map", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name, "editor", "openid", "profile", "email", "groups"],
         capture_output=True,
         check=True,
     )
 
+    print("  Step 4")
+    print(f"    kanidm system oauth2 show-basic-secret --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt --output json {name}")
     client_secret = json.loads(subprocess.run(
-        ["kanidm", "system", "oauth2", "show-basic-secret", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--output", "json", name],
+        ["kanidm", "system", "oauth2", "show-basic-secret", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", "--output", "json", name],
         capture_output=True,
         check=True,
     ).stdout.decode("utf-8"))['secret']
 
+    print(" Step 5")
     apply_secret(
         f"kanidm.{name}",
         "global-secrets",
@@ -210,23 +172,6 @@ def setup_kanidm_oauth_app(name: str, redirect_uri: str) -> None:
 
 def main() -> None:
     with Console().status("Completing the remaining sorcery"):
-        gitea_access_tokens = [
-            {
-                'name': 'renovate',
-                'scopes': [
-                    "write:repository",
-                    "read:user",
-                    "write:issue",
-                    "read:organization",
-                    "read:misc"
-                ]
-            }
-        ]
-
-        gitea_oauth_apps = [
-            {'name': 'woodpecker', 'redirect_uri': f"https://{client.NetworkingV1Api().read_namespaced_ingress('woodpecker-server', 'woodpecker').spec.rules[0].host}/authorize"},
-        ]
-
         kanidm_groups = [
             # TODO better group management
             {'name': 'editor'},
@@ -236,19 +181,14 @@ def main() -> None:
             {'name': 'dex', 'redirect_uri': f"https://{client.NetworkingV1Api().read_namespaced_ingress('dex', 'dex').spec.rules[0].host}/callback"},
         ]
 
-        for token in gitea_access_tokens:
-            setup_gitea_access_token(token['name'], token['scopes'])
-
-        for app in gitea_oauth_apps:
-            setup_gitea_oauth_app(app['name'], app['redirect_uri'])
-
-        setup_gitea_auth_with_dex()
-
+        get_root_ca_secret_ca("saliman-root-cert", "cert-manager")
+        get_kanidm_tls_secret_ca("kanidm-tls-certificate", "kanidm")
         kanidm_login(["admin", "idm_admin"])
 
         for group in kanidm_groups:
             setup_kanidm_group(group['name'])
 
+        # get_kanidm_tls_secret_ca("kanidm-tls-certificate", "kanidm")
         for app in kanidm_oauth_apps:
             setup_kanidm_oauth_app(app['name'], app['redirect_uri'])
 
