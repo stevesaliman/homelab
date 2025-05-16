@@ -42,3 +42,5 @@ This document covers the changes from the original khuedoan repo.
   volume mount that creates `/etc/ssl/certs/saliman-ca.crt`.  This directory name is important - it
   doesn't work if it is elsewhere. I also had to modify the dex config to add a `rootCA` pointing
   to our cert
+
+14. Created an initialize-kanidm script, added the root cert to the onboarding script 

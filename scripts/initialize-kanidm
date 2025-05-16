@@ -26,47 +26,37 @@ from kubernetes.stream import stream
 # - Kubernetes service account
 config.load_config()
 
+root_ca = "saliman-ca.crt"
 kanidm_host = client.NetworkingV1Api().read_namespaced_ingress('kanidm', 'kanidm').spec.rules[0].host
+kanidm_host_args = ["--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", root_ca],
 
 
 # This method gets the root Certificate Authority from the cert-manager.  We'll need this later if
-# we want to make https requests from our browsers.  It saves the cert to "root-ca.crt" for use
+# we want to make https requests from our browsers.  It saves the cert to "saliman-ca.crt" for use
 # later.
-def get_root_ca_secret_ca(name: str, namespace: str) -> None:
+# :param name: The name of the secret holding the root cert.
+# :param namespace: The name of the namespace holding the secret.
+def get_saliman_ca_secret_ca(name: str, namespace: str) -> None:
     # Fetch the secret
     secret = client.CoreV1Api().read_namespaced_secret(name, namespace)
     # Extract and decode the certificate (you can also get tls.key if needed)
-    tls_crt_b64 = secret.data.get("ca.crt")
-    if not tls_crt_b64:
+    ca_crt_b64 = secret.data.get("ca.crt")
+    if not ca_crt_b64:
         raise ValueError("ca.crt not found in secret")
 
-    tls_crt = base64.b64decode(tls_crt_b64)
+    ca_crt = base64.b64decode(ca_crt_b64)
 
     # Save to file
-    with open("root-ca.crt", "wb") as f:
-        f.write(tls_crt)
+    with open(root_ca, "wb") as f:
+        f.write(ca_crt)
 
-    print("Certificate saved to root-ca.crt")
-
-# This method gets the Certificate Authority cert from the self-signed TLS cert Kanidm is using.  It
-# saves the cert to "kanidm-ca.crt" for use later.
-def get_kanidm_tls_secret_ca(name: str, namespace: str) -> None:
-    # Fetch the secret
-    secret = client.CoreV1Api().read_namespaced_secret(name, namespace)
-    # Extract and decode the certificate (you can also get tls.key if needed)
-    tls_crt_b64 = secret.data.get("ca.crt")
-    if not tls_crt_b64:
-        raise ValueError("ca.crt not found in secret")
-
-    tls_crt = base64.b64decode(tls_crt_b64)
-
-    # Save to file
-    with open("kanidm-ca.crt", "wb") as f:
-        f.write(tls_crt)
-
-    print("Certificate saved to kanidm-ca.crt")
+    print(f"Certificate saved to {root_ca}")
 
 
+# This method creates a secret with an application's client_id and client_secret
+# :param name: The name of the secret to create
+# :param namespace: the namespace where the secret should go
+# :param data: the encoded data for the secret
 def apply_secret(name: str, namespace: str, data: dict) -> None:
     print(f"Applying {data} to {name}")
     try:
@@ -84,6 +74,9 @@ def apply_secret(name: str, namespace: str, data: dict) -> None:
         )
         client.CoreV1Api().create_namespaced_secret(namespace, new_secret)
 
+# This function resets the password of the given account, returning the new password
+# :param account: the name of the user to reset
+# :return: the new password
 def reset_kanidm_account_password(account: str) -> str:
     print(f"Resetting {account}'s password")
     resp = stream(
@@ -99,6 +92,8 @@ def reset_kanidm_account_password(account: str) -> str:
 
 # TODO Proper automation will be added later, waiting for client library update:
 # https://github.com/kanidm/kanidm/pull/2301
+# Login to kanidm as each of the given users, resetting the password first.
+# :param accounts: the list of accounts to reset.
 def kanidm_login(accounts: list[str]) -> None:
     for account in accounts:
         print(f"Resetting and logging in as {account}")
@@ -107,58 +102,74 @@ def kanidm_login(accounts: list[str]) -> None:
 
         # There's no way to input password using the standard library, so we have to use pexpect
         # https://stackoverflow.com/questions/2387731/use-subprocess-to-send-a-password
-        print(f"  kanidm login --url https://{kanidm_host} --name {account} --ca kanidm-ca.crt")
-        cli_login = pexpect.spawn(f"kanidm login --url https://{kanidm_host} --name {account} --ca kanidm-ca.crt")
+        print(f"  kanidm login --url https://{kanidm_host} --name {account} --ca {root_ca}")
+        cli_login = pexpect.spawn(f"kanidm login --url https://{kanidm_host} --name {account} --ca {root_ca}")
+        cli_login.expect("Enter password: ")
         cli_login.sendline(password)
         cli_login.read()
         print(f"  Login successful for {account}")
 
+
+# This function removes the mfa requirement from the given group.
+# :param group: the name of the group from which to remove the mfa requirement
+def remove_mfa(group: str) -> None:
+    print(f"Removing the MFA requirement from {group}")
+    subprocess.run(
+        ["kanidm", "group", "account-policy", "redential-type-minimum", group, "any"] + kanidm_host_args,
+        capture_output=True,
+        )
+
+# Create a group in Kanidm
+# :param name: the name of the group to create
 def setup_kanidm_group(name: str) -> None:
     print(f"Creating the {name} group")
     subprocess.run(
-        ["kanidm", "group", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name],
+        ["kanidm", "group", "create"] + kanidm_host_args + [name],
         capture_output=True,
-    )
+        )
 
+# Create an oauth application in Kanidm
+# :param name: the name of the application
+# :param redirect_uri: the redirect uri of the application
 def setup_kanidm_oauth_app(name: str, redirect_uri: str) -> None:
     print(f"Setting up the {name} application")
     try:
         print("  Setting up the system")
-        print(f"    kanidm system oauth2 create --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name} {name} {redirect_uri}")
+        print(f"    kanidm system oauth2 create {kanidm_host_args} {name} {name} {redirect_uri}")
         subprocess.run(
-            ["kanidm", "system", "oauth2", "create", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name, name, redirect_uri],
+            ["kanidm", "system", "oauth2", "create"] + kanidm_host_args + [name, name, redirect_uri],
             capture_output=True,
             check=True,
-        )
+            )
     except subprocess.CalledProcessError as e:
         print(f"  Oops!\n${e}")
         return
 
     # TODO https://github.com/dexidp/dex/pull/3188
     print("  Step 2...")
-    print(f"    kanidm system oauth2 warning-insecure-client-disable-pkce --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name}")
+    print(f"    kanidm system oauth2 warning-insecure-client-disable-pkce {kanidm_host_args} {name}")
     subprocess.run(
-        ["kanidm", "system", "oauth2", "warning-insecure-client-disable-pkce", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name],
+        ["kanidm", "system", "oauth2", "warning-insecure-client-disable-pkce"] + kanidm_host_args + [name],
         capture_output=True,
         check=True,
-    )
+        )
 
     print("  Step 3")
-    print(f"    kanidm system oauth2 create-scope-map --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt {name} editor openid profile email groups")
+    print(f"    kanidm system oauth2 create-scope-map {kanidm_host_args} {name} editor openid profile email groups")
     subprocess.run(
         # TODO better group management
-        ["kanidm", "system", "oauth2", "create-scope-map", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", name, "editor", "openid", "profile", "email", "groups"],
+        ["kanidm", "system", "oauth2", "create-scope-map"] + kanidm_host_args + [name, "editor", "openid", "profile", "email", "groups"],
         capture_output=True,
         check=True,
-    )
+        )
 
     print("  Step 4")
-    print(f"    kanidm system oauth2 show-basic-secret --url https://{kanidm_host} --name idm_admin --ca kanidm-ca.crt --output json {name}")
+    print(f"    kanidm system oauth2 show-basic-secret {kanidm_host_args} --output json {name}")
     client_secret = json.loads(subprocess.run(
-        ["kanidm", "system", "oauth2", "show-basic-secret", "--url", f"https://{kanidm_host}", "--name", "idm_admin", "--ca", "kanidm-ca.crt", "--output", "json", name],
+        ["kanidm", "system", "oauth2", "show-basic-secret"] + kanidm_host_args + ["--output", "json", name],
         capture_output=True,
         check=True,
-    ).stdout.decode("utf-8"))['secret']
+        ).stdout.decode("utf-8"))['secret']
 
     print(" Step 5")
     apply_secret(
@@ -170,6 +181,7 @@ def setup_kanidm_oauth_app(name: str, redirect_uri: str) -> None:
         }
     )
 
+# Main method starts here.
 def main() -> None:
     with Console().status("Completing the remaining sorcery"):
         kanidm_groups = [
@@ -181,9 +193,9 @@ def main() -> None:
             {'name': 'dex', 'redirect_uri': f"https://{client.NetworkingV1Api().read_namespaced_ingress('dex', 'dex').spec.rules[0].host}/callback"},
         ]
 
-        get_root_ca_secret_ca("saliman-root-cert", "cert-manager")
-        get_kanidm_tls_secret_ca("kanidm-tls-certificate", "kanidm")
+        get_saliman_ca_secret_ca("saliman-root-cert", "cert-manager")
         kanidm_login(["admin", "idm_admin"])
+        remove_mfa("idm_all_persons")
 
         for group in kanidm_groups:
             setup_kanidm_group(group['name'])
