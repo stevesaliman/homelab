@@ -1,4 +1,11 @@
 grafana:
+  # If we're going with a self-signed cert, mount the root cert.
+  extraSecretMounts:
+    - name: saliman-root-cert
+      mountPath: /etc/ssl/certs/saliman-ca.crt
+      secretName: saliman-root-cert
+      subPath: saliman-ca.crt
+      readOnly: true
   ingress:
     enabled: true
     ingressClassName: nginx

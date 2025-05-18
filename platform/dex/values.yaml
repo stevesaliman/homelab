@@ -48,7 +48,7 @@ dex:
         secretEnv: GITEA_CLIENT_SECRET
   envFrom:
     - secretRef:
-        name: dex
+        name: dex-secrets
   ingress:
     enabled: true
     className: nginx
