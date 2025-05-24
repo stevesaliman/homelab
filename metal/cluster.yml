@@ -9,3 +9,5 @@
   hosts: localhost
   roles:
     - cilium
+    - csi-driver-smb
+

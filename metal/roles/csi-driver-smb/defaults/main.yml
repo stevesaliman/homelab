@@ -1,0 +1,4 @@
+csi_repo_url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
+csi_version: v1.18.0
+csi_namespace: kube-system
+

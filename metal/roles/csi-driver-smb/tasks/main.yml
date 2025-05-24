@@ -1,0 +1,14 @@
+- name: Install SMB CSI Driver
+  kubernetes.core.helm:
+    name: csi-driver-dmb
+    chart_ref: csi-driver-smb
+    chart_repo_url: "{{ csi_repo_url }}"
+    chart_version: "{{ csi_version }}"
+    release_namespace: "{{ csi_namespace }}"
+
+- name: Wait for CSI SMB Controller
+  kubernetes.core.k8s_info:
+    kind: deployment
+    name: csi-smb-controller
+    namespace: "{{ csi_namespace }}"
+    wait: true
