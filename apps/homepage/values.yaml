@@ -56,8 +56,9 @@ app-template:
           hideVersion: true
         widgets.yaml: |
           - search:
-              provider: google
+              provider: duckduckgo
               target: _blank
+        # Services displayed at the top of the screen
         services.yaml: |
           - Popular:
             - Matrix:
@@ -76,6 +77,10 @@ app-template:
                 href: https://paperless.saliman.net
                 description: Document management system
                 icon: paperless.svg
+            - Open Webui:
+                href: https://ai.saliman.net
+                description: Web UI for Ollama
+                icon: open-webui.svg
           - Management:
             - Transmission:
                 href: https://transmission.saliman.net
@@ -127,6 +132,7 @@ app-template:
                 href: https://speedtest.saliman.net
                 description: Internal network speed test
                 icon: openspeedtest.png
+        # Bookmarks shown at the bottom of the screen
         bookmarks.yaml: |
           - Homelab:
             - Documentation:
